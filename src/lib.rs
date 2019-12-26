@@ -2,12 +2,11 @@
 //! Provides tooling for Continuous Buffer
 //! (i.e. a Circular Buffer that is expected to overrun).
 //!
+//! Uses `core` (and nothing else) so it can be used in `#[no_std]` projects.
+//!
 //! All logic is implemented in [`ContBufCtrl`].
-//!
-//! uses `core` so it can be used in `#[no_std]` projects.
-//!
 //! # Examples
-//! ```
+//! ```rust
 //! use contbuf::*;
 //!
 //! // Define MyBuffer as a continuous buffer
