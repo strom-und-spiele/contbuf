@@ -32,6 +32,10 @@
 //! b.stuff(4);
 //! assert_eq!(b.data, [3, 4]);
 //!
+//! b.reset();
+//! assert_eq!(b.is_empty(), true);
+//! // as we don't keep track of the init value
+//! assert_eq!(b.data, [3, 4]);
 //! ```
 #![no_std]
 
@@ -106,6 +110,9 @@ macro_rules! define_buf {
 
             pub fn get_newest(&self) -> $T {
                 self.ctrl.get_newest(&self.data)
+            }
+            pub fn reset(&mut self) {
+                self.ctrl.reset();
             }
         }
     };
@@ -200,5 +207,11 @@ impl<T: Copy> ContBufCtrl<T> {
     /// Returns the oldest entry in the data buffer.
     pub fn get_oldest(&self, data: &[T]) -> T {
         data[self.head]
+    }
+
+    /// Reset the buffer
+    pub fn reset(&mut self) {
+        self.head = 0;
+        self.filled = false;
     }
 }
