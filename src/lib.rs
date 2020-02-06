@@ -17,6 +17,7 @@
 //! let mut b = MyBuffer::new();
 //! assert_eq!(b.is_empty(), true);
 //! assert_eq!(b.data, [0, 0]);
+//! assert_eq!(b.get_head(), 0);
 //!
 //! b.stuff(1);
 //! assert_eq!(b.is_empty(), false);
@@ -28,14 +29,14 @@
 //!
 //! b.stuff(3);
 //! assert_eq!(b.data, [3, 2]);
+//! assert_eq!(b.get_head(), 1);
 //!
-//! b.stuff(4);
-//! assert_eq!(b.data, [3, 4]);
 //!
 //! b.reset();
 //! assert_eq!(b.is_empty(), true);
+//! assert_eq!(b.get_head(), 0);
 //! // as we don't keep track of the init value
-//! assert_eq!(b.data, [3, 4]);
+//! assert_eq!(b.data, [3, 2]);
 //! ```
 #![no_std]
 
@@ -111,8 +112,13 @@ macro_rules! define_buf {
             pub fn get_newest(&self) -> $T {
                 self.ctrl.get_newest(&self.data)
             }
+
             pub fn reset(&mut self) {
                 self.ctrl.reset();
+            }
+
+            pub fn get_head(&self) -> usize {
+                self.ctrl.get_head()
             }
         }
     };
@@ -213,5 +219,9 @@ impl<T: Copy> ContBufCtrl<T> {
     pub fn reset(&mut self) {
         self.head = 0;
         self.filled = false;
+    }
+
+    pub fn get_head(&self) -> usize {
+        self.head
     }
 }
