@@ -17,7 +17,7 @@
 //! let mut b = MyBuffer::new();
 //! assert_eq!(b.is_empty(), true);
 //! assert_eq!(b.data, [0, 0]);
-//! assert_eq!(b.get_head(), 0);
+//! assert_eq!(b.get_store_count(), 0);
 //!
 //! b.stuff(1);
 //! assert_eq!(b.is_empty(), false);
@@ -26,15 +26,16 @@
 //! b.stuff(2);
 //! assert_eq!(b.is_full(), true);
 //! assert_eq!(b.data, [1, 2]);
+//! assert_eq!(b.get_store_count(), 2);
 //!
 //! b.stuff(3);
 //! assert_eq!(b.data, [3, 2]);
-//! assert_eq!(b.get_head(), 1);
+//! assert_eq!(b.get_store_count(), 2);
 //!
 //!
 //! b.reset();
 //! assert_eq!(b.is_empty(), true);
-//! assert_eq!(b.get_head(), 0);
+//! assert_eq!(b.get_store_count(), 0);
 //! // as we don't keep track of the init value
 //! assert_eq!(b.data, [3, 2]);
 //! ```
@@ -117,8 +118,8 @@ macro_rules! define_buf {
                 self.ctrl.reset();
             }
 
-            pub fn get_head(&self) -> usize {
-                self.ctrl.get_head()
+            pub fn get_store_count(&self) -> usize {
+                self.ctrl.get_store_count()
             }
         }
     };
@@ -229,7 +230,10 @@ impl<T: Copy> ContBufCtrl<T> {
         self.filled = false;
     }
 
-    pub fn get_head(&self) -> usize {
-        self.head
+    pub fn get_store_count(&self) -> usize {
+        if self.filled {
+            return self.len;
+        }
+        return self.head;
     }
 }
