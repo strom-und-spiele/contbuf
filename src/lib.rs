@@ -195,9 +195,14 @@ impl<T: Copy> ContBufCtrl<T> {
         data[self.head] = val;
         self.inc_head();
         if !self.filled {
-            if self.head == 0 {
-                self.filled = true;
-            }
+            self.set_filled_if_head_wrapped();
+        }
+    }
+
+    /// assumes there was at least one datum `stuff`ed before.
+    fn set_filled_if_head_wrapped(&mut self) {
+        if self.head == 0 {
+            self.filled = true;
         }
     }
 
@@ -212,7 +217,10 @@ impl<T: Copy> ContBufCtrl<T> {
 
     /// Returns the oldest entry in the data buffer.
     pub fn get_oldest(&self, data: &[T]) -> T {
-        data[self.head]
+        if self.is_full() {
+            return data[self.head];
+        }
+        data[0]
     }
 
     /// Reset the buffer
