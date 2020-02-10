@@ -6,7 +6,7 @@
 //!
 //! All logic is implemented in [`ContBufCtrl`].
 //! # Examples
-//! ```rust
+//! ```
 //! use contbuf::*;
 //!
 //! // Define MyBuffer as a continuous buffer
@@ -18,9 +18,15 @@
 //! assert_eq!(b.is_empty(), true);
 //! assert_eq!(b.data, [0, 0]);
 //! assert_eq!(b.get_store_count(), 0);
+//! assert_eq!(None, b.get_newest());
+//! assert_eq!(None, b.get_oldest());
 //!
 //! b.stuff(1);
 //! assert_eq!(b.is_empty(), false);
+//! assert_eq!(b.data, [1, 0]);
+//! assert_eq!(b.get_newest().unwrap(), 1);
+//! assert_eq!(b.get_newest().unwrap(), b.get_oldest().unwrap());
+//! // Note that get is not pop:
 //! assert_eq!(b.data, [1, 0]);
 //!
 //! b.stuff(2);
@@ -30,6 +36,8 @@
 //!
 //! b.stuff(3);
 //! assert_eq!(b.data, [3, 2]);
+//! assert_eq!(b.get_newest().unwrap(), 3);
+//! assert_eq!(b.get_oldest().unwrap(), 2);
 //! assert_eq!(b.get_store_count(), 2);
 //!
 //!
@@ -38,6 +46,8 @@
 //! assert_eq!(b.get_store_count(), 0);
 //! // as we don't keep track of the init value
 //! assert_eq!(b.data, [3, 2]);
+//! assert_eq!(None, b.get_newest());
+//! assert_eq!(None, b.get_oldest());
 //! ```
 #![no_std]
 
@@ -75,10 +85,7 @@ use core::marker::PhantomData;
 /// }
 ///
 /// define_buf!{SpecialBuffer [Special; 2] = Special {special_number : 0}}
-///
-///
 /// ```
-///
 #[macro_export]
 macro_rules! define_buf {
     ($contbuffername:ident [$T:ty; $size:expr] = $default:expr) => {
@@ -106,11 +113,11 @@ macro_rules! define_buf {
                 self.ctrl.stuff(&mut self.data, val);
             }
 
-            pub fn get_oldest(&self) -> $T {
+            pub fn get_oldest(&self) -> Option<$T> {
                 self.ctrl.get_oldest(&self.data)
             }
 
-            pub fn get_newest(&self) -> $T {
+            pub fn get_newest(&self) -> Option<$T> {
                 self.ctrl.get_newest(&self.data)
             }
 
@@ -186,11 +193,6 @@ impl<T: Copy> ContBufCtrl<T> {
         self.filled
     }
 
-    /// Increments the head with respect to the data length.
-    fn inc_head(&mut self) {
-        self.head = (self.head + 1) % self.len;
-    }
-
     /// Stuffs data into the data buffer, overwriting old data.
     pub fn stuff(&mut self, data: &mut [T], val: T) {
         data[self.head] = val;
@@ -198,6 +200,11 @@ impl<T: Copy> ContBufCtrl<T> {
         if !self.filled {
             self.set_filled_if_head_wrapped();
         }
+    }
+
+    /// Increments the head with respect to the data length.
+    fn inc_head(&mut self) {
+        self.head = (self.head + 1) % self.len;
     }
 
     /// assumes there was at least one datum `stuff`ed before.
@@ -208,20 +215,25 @@ impl<T: Copy> ContBufCtrl<T> {
     }
 
     /// Returns the newest entry in the data buffer.
-    pub fn get_newest(&self, data: &[T]) -> T {
+    pub fn get_newest(&self, data: &[T]) -> Option<T> {
         if self.head > 0 {
-            return data[self.head - 1];
-        } else {
-            return data[self.len - 1];
+            return Some(data[self.head - 1]);
         }
+        if self.filled {
+            return Some(data[self.len - 1]);
+        }
+        return None;
     }
 
     /// Returns the oldest entry in the data buffer.
-    pub fn get_oldest(&self, data: &[T]) -> T {
+    pub fn get_oldest(&self, data: &[T]) -> Option<T> {
         if self.is_full() {
-            return data[self.head];
+            return Some(data[self.head]);
         }
-        data[0]
+        if !self.is_empty() {
+            return Some(data[0]);
+        }
+        return None;
     }
 
     /// Reset the buffer
@@ -230,6 +242,7 @@ impl<T: Copy> ContBufCtrl<T> {
         self.filled = false;
     }
 
+    /// Ammount of available values stored
     pub fn get_store_count(&self) -> usize {
         if self.filled {
             return self.len;
